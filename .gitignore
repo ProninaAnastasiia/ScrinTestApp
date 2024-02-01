@@ -1,0 +1,9 @@
+#RiderC#
+.idea/
+*.*.iml
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+/ScrinTestApp.csproj
