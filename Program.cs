@@ -48,19 +48,11 @@ class Program
                     userId = existingUser.Id;
                 }
 
-                context.Orders.Add(new Order
-                {
-                    Date = orderDate,
-                    UserId = userId,
-                    Cost = orderCost,
-                    OrderNumber = orderNo
-                });
-
-                context.SaveChanges();
-                var orderId = context.Orders.OrderBy(e => e.Id).LastOrDefault()!.Id;
+                var productsAvailable = true; // Флаг, указывающий, что все товары доступны
                 
                 // Получение списка продуктов в заказе
                 XmlNodeList? productNodes = orderNode.SelectNodes("product");
+                
                 foreach (XmlNode productNode in productNodes!)
                 {
                     // Получение данных о заказанном продукте
@@ -68,48 +60,65 @@ class Program
                     string productName = productNode.SelectSingleNode("name")!.InnerText;
                     decimal productPrice = decimal.Parse(productNode.SelectSingleNode("price")!.InnerText);
 
-                    int productId;
                     var product = context.Products.FirstOrDefault(e => e.Name.Equals(productName) && e.Price.Equals(productPrice));
                     if (product == null)
                     {
-                        Console.WriteLine($"На складе нет товара {productName}. Необходимо пополнить запасы прежде, чем доставлять заказ клиенту.");
-                        continue;
+                        Console.WriteLine($"На складе нет товара {productName}. Необходимо пополнить запасы прежде, чем принимать заказ.");
+                        productsAvailable = false;
                     }
                     else
                     {
-                        productId = product.Id;
                         if (product.Amount < productQuantity)
                         {
-                            Console.WriteLine($"На складе не хватает товара {productName}. Необходимо пополнить запасы прежде, чем доставлять заказ клиенту.");
-                            continue;
+                            Console.WriteLine($"На складе не хватает товара {productName}. Необходимо пополнить запасы прежде, чем принимать заказ.");
+                            productsAvailable = false;
                         }
-                        else
-                        {
-                            product.Amount -= productQuantity;
-                            context.Products.Update(product);
-                            context.SaveChanges();
-                        }
-                        
                     }
-
-                    try
-                    {
-                        context.Purchases.Add(new Purchase
-                        {
-                            Amount = productQuantity,
-                            OrderId = orderId,
-                            ProductId = productId
-                        });
-                        context.SaveChanges();
-                    }
-                    catch(Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
-
-                    
                 }
 
+                if (productsAvailable)
+                {
+                    context.Orders.Add(new Order
+                    {
+                        Date = orderDate,
+                        UserId = userId,
+                        Cost = orderCost,
+                        OrderNumber = orderNo
+                    });
+
+                    context.SaveChanges();
+                    var orderId = context.Orders.OrderBy(e => e.Id).LastOrDefault()!.Id;
+
+                    foreach (XmlNode productNode in productNodes)
+                    {
+                        // Получение данных о заказанном продукте
+                        int productQuantity = int.Parse(productNode.SelectSingleNode("quantity")!.InnerText);
+                        string productName = productNode.SelectSingleNode("name")!.InnerText;
+                        decimal productPrice = decimal.Parse(productNode.SelectSingleNode("price")!.InnerText);
+                        
+                        var product = context.Products.FirstOrDefault(e => e.Name.Equals(productName) && e.Price.Equals(productPrice));
+                        product!.Amount -= productQuantity;
+                        context.Products.Update(product);
+                        context.SaveChanges();
+                        
+                        int productId = product.Id;
+
+                        try
+                        {
+                            context.Purchases.Add(new Purchase
+                            {
+                                Amount = productQuantity,
+                                OrderId = orderId,
+                                ProductId = productId
+                            });
+                            context.SaveChanges();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
+                    }
+                }
             }
         }
         Console.WriteLine("Данные из XML файла успешно загружены в базу данных.");
