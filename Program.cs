@@ -73,36 +73,41 @@ class Program
                     if (product == null)
                     {
                         Console.WriteLine($"На складе нет товара {productName}. Необходимо пополнить запасы прежде, чем доставлять заказ клиенту.");
-                        var newProduct = new Product
-                        {
-                            Name = productName,
-                            Description = "-",
-                            Price = productPrice,
-                            Amount = 0
-                        };
-                        context.Products.Add(newProduct);
-                        context.SaveChanges();
-                        productId = context.Products.FirstOrDefault(e => e.Name.Equals(productName) && e.Price.Equals(productPrice))!.Id;
+                        continue;
                     }
                     else
                     {
                         productId = product.Id;
-                        if (product.Amount <= productQuantity)
+                        if (product.Amount < productQuantity)
                         {
                             Console.WriteLine($"На складе не хватает товара {productName}. Необходимо пополнить запасы прежде, чем доставлять заказ клиенту.");
+                            continue;
                         }
-                        else product.Amount -= productQuantity;
-                        context.Products.Update(product);
+                        else
+                        {
+                            product.Amount -= productQuantity;
+                            context.Products.Update(product);
+                            context.SaveChanges();
+                        }
+                        
                     }
 
-                    context.Purchases.Add(new Purchase
+                    try
                     {
-                        Amount = productQuantity,
-                        OrderId = orderId,
-                        ProductId = productId
-                    });
+                        context.Purchases.Add(new Purchase
+                        {
+                            Amount = productQuantity,
+                            OrderId = orderId,
+                            ProductId = productId
+                        });
+                        context.SaveChanges();
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
 
-                    context.SaveChanges();
+                    
                 }
 
             }
