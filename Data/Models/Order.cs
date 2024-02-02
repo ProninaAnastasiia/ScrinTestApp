@@ -1,21 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace ScrinTestApp.Data.Models;
 
-namespace ScrinTestApp.Data.Models
+public sealed class Order
 {
-    public partial class Order
+    public Order()
     {
-        public Order()
-        {
-            Purchases = new HashSet<Purchase>();
-        }
-
-        public int Id { get; set; }
-        public string Date { get; set; } = null!;
-        public int UserId { get; set; }
-        public double Cost { get; set; }
-
-        public virtual User User { get; set; } = null!;
-        public virtual ICollection<Purchase> Purchases { get; set; }
+        Purchases = new HashSet<Purchase>();
     }
+
+    public int Id { get; set; }
+    public int OrderNumber { get; set; }
+    public DateTime Date { get; set; }
+    public int UserId { get; set; }
+    public decimal Cost { get; set; }
+
+    public User User { get; set; } = null!;
+    public ICollection<Purchase> Purchases { get; set; }
 }
